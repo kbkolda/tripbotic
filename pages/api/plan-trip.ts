@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       console.log(`🔁 Mapping interest "${interest}" to canonical "${canonicalInterest}" → category ${selectedCategory}`)
 
       if (!poiCache[city][selectedCategory]) {
-        const results = await fsqSearch(city, selectedCategory)
+        const results = await fsqSearch(city, selectedCategory, undefined)
         const mappedResults = results.map(p => ({
           fsq_id: p.fsq_id || p.id,
           name: p.name,
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       }
 
       const availableInterests = Array.from(interestSet).filter(interest => {
-        const canonical = interestAliasMap[interest] || interest
+        const canonical = interestAliasMap[interest as string] || interest
         const cat = selectedCategoriesByInterest[city][canonical]
         const allPois = poiCache[city]?.[cat] || []
         const usedSet = usedPoiIdsByCityInterest[city]?.[canonical] || new Set()
