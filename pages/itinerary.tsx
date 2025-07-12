@@ -1,53 +1,35 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../components/Navbar'
 import type { TripData, DayPlan } from '../types'
-
-const mockItinerary: DayPlan[] = [
-  {
-    date: '2025-09-14',
-    city: 'Rome',
-    activities: [
-      {
-        title: 'Colosseum Tour',
-        description: 'Guided tour of Rome’s most iconic ruin',
-        category: 'history',
-        estimated_cost: 25,
-      },
-      {
-        title: 'Testaccio Market',
-        description: 'Sample local food at Rome’s historic market',
-        category: 'food',
-        estimated_cost: 15,
-      },
-    ],
-  },
-  {
-    date: '2025-09-15',
-    city: 'Rome',
-    activities: [
-      {
-        title: 'Vatican Museums',
-        description: 'Explore the Sistine Chapel and museum complex',
-        category: 'museums',
-        estimated_cost: 30,
-      },
-    ],
-  },
-]
+import { Dialog } from '@headlessui/react'
+import { format } from 'date-fns'
 
 export default function ItineraryPage() {
   const [tripData, setTripData] = useState<TripData | null>(null)
   const [itinerary, setItinerary] = useState<DayPlan[]>([])
   const [isPremium, setIsPremium] = useState<boolean>(false)
 
+  const [editModal, setEditModal] = useState({ open: false, dayIndex: 0, activityIndex: 0 })
+  const [editForm, setEditForm] = useState({ title: '', description: '', category: '', cost: '' })
+
   useEffect(() => {
+    const stored = localStorage.getItem('savedItinerary')
+    const parsed = stored ? JSON.parse(stored) : null
+    console.log('🧳 Loaded itinerary from localStorage:', parsed)
     const saved = localStorage.getItem('tripData') ?? ''
+    console.log("🔍 loaded tripData", saved)
     const premiumStatus = localStorage.getItem('isPremium') === 'true'
     setIsPremium(premiumStatus)
     if (saved) {
-      setTripData(JSON.parse(saved))
-      const savedItinerary = localStorage.getItem('savedItinerary') ?? ''
-      setItinerary(savedItinerary ? JSON.parse(savedItinerary) : mockItinerary)
+      const parsed = JSON.parse(saved)
+      setTripData(parsed)
+      console.log('📦 Loaded tripData:', parsed)
+
+      const storedItinerary = localStorage.getItem('savedItinerary')
+      const parsedItinerary = storedItinerary ? JSON.parse(storedItinerary) : []
+      console.log("📅 Parsed itinerary from localStorage:", parsedItinerary)
+      setItinerary(parsedItinerary)
+      console.log('🗓 Final itinerary set:', parsedItinerary)
     }
   }, [])
 
@@ -63,39 +45,40 @@ export default function ItineraryPage() {
 
   const handleEdit = (dayIndex: number, activityIndex: number) => {
     const current = itinerary[dayIndex].activities[activityIndex]
-    const newTitle = prompt('Edit activity title:', current.title)
-    const newDescription = prompt('Edit description:', current.description)
-    const newCategory = prompt('Edit category:', current.category)
-    const newCostStr = prompt('Edit estimated cost:', current.estimated_cost.toString()) ?? ''
-    const newCost = parseFloat(newCostStr)
-    if (!newTitle || !newDescription || !newCategory || isNaN(newCost)) return
+    setEditForm({
+      title: current.title,
+      description: current.description,
+      category: current.category,
+      cost: current.estimated_cost.toString(),
+    })
+    setEditModal({ open: true, dayIndex, activityIndex })
+  }
 
+  const submitEdit = () => {
+    const { title, description, category, cost } = editForm
     const updated = [...itinerary]
-    updated[dayIndex].activities[activityIndex] = {
-      title: newTitle,
-      description: newDescription,
-      category: newCategory,
-      estimated_cost: newCost,
+    if (editModal.activityIndex === -1) {
+      updated[editModal.dayIndex].activities.push({
+        title,
+        description,
+        category,
+        estimated_cost: parseFloat(cost),
+      })
+    } else {
+      updated[editModal.dayIndex].activities[editModal.activityIndex] = {
+        title,
+        description,
+        category,
+        estimated_cost: parseFloat(cost),
+      }
     }
     setItinerary(updated)
+    setEditModal({ ...editModal, open: false })
   }
 
   const handleAddActivity = (dayIndex: number) => {
-    const title = prompt('Enter activity title:')
-    const description = prompt('Enter description:')
-    const category = prompt('Enter category:')
-    const costStr = prompt('Enter estimated cost:') ?? ''
-    const cost = parseFloat(costStr)
-    if (!title || !description || !category || isNaN(cost)) return
-
-    const updated = [...itinerary]
-    updated[dayIndex].activities.push({
-      title,
-      description,
-      category,
-      estimated_cost: cost,
-    })
-    setItinerary(updated)
+    setEditForm({ title: '', description: '', category: '', cost: '' })
+    setEditModal({ open: true, dayIndex, activityIndex: -1 })
   }
 
   const moveDay = (index: number, direction: number) => {
@@ -115,22 +98,35 @@ export default function ItineraryPage() {
     }
   }
 
+  const totalCost = itinerary.flatMap(d => d.activities).reduce((sum, act) => sum + act.estimated_cost, 0)
+
+  const formatDate = (date: string) => {
+    try {
+      return format(new Date(date), 'MMM d, yyyy')
+    } catch {
+      return date
+    }
+  }
+
   if (!tripData) return <div className="p-6">Loading trip details...</div>
 
   return (
     <>
       <Navbar />
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">Your Trip Itinerary</h1>
-        <p className="mb-6 text-gray-600">
-          {tripData.destinations.join(', ')} · {tripData.dates.start} → {tripData.dates.end} · Budget: {tripData.budget}
-        </p>
+        <h1
+          contentEditable
+          suppressContentEditableWarning
+          className="text-2xl font-bold mb-4"
+        >
+          {tripData.destinations} · {formatDate(tripData.dates?.start)} – {formatDate(tripData.dates?.end)} · Budget: {tripData.budget}
+        </h1>
 
         {itinerary.map((day, dayIndex) => (
           <div key={dayIndex} className="mb-8">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">
-                {day.city} - {day.date}
+                {day.city} - {formatDate(day.date)}
               </h2>
               <div className="space-x-2">
                 <button
@@ -152,10 +148,27 @@ export default function ItineraryPage() {
                 key={i}
                 className="bg-white shadow p-4 mb-3 rounded-lg border"
               >
-                <strong>{act.title}</strong>
+                <div className="flex justify-between items-center">
+                  <strong>{act.title}</strong>
+                  {act.category && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                      {act.rank ? `${act.rank}` : act.category}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-gray-700">{act.description}</p>
-                <div className="text-sm text-gray-500">
-                  Category: {act.category} · Estimated Cost: ${act.estimated_cost}
+                {act.website && (
+                  <a
+                    href={act.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 text-sm underline"
+                  >
+                    Visit Website
+                  </a>
+                )}
+                <div className="text-sm text-gray-500 mt-1">
+                  Estimated Cost: ${act.estimated_cost}
                 </div>
                 <div className="mt-2 flex gap-3">
                   <button
@@ -182,6 +195,19 @@ export default function ItineraryPage() {
           </div>
         ))}
 
+        {tripData.costSummary && (
+          <div className="mt-10 border-t pt-6 text-sm text-gray-700">
+            <h3 className="text-lg font-semibold mb-2">Estimated Trip Costs</h3>
+            <ul className="space-y-1">
+              <li>Flights: ${tripData.costSummary.flights}</li>
+              <li>Accommodations: ${tripData.costSummary.accommodations}</li>
+              <li>Activities: ${tripData.costSummary.activities}</li>
+              <li>Food: ${tripData.costSummary.food}</li>
+            </ul>
+            <p className="mt-2 font-bold">Total Estimated Cost: ${tripData.costSummary.total}</p>
+          </div>
+        )}
+
         <div className="mt-10">
           <button
             onClick={handleExportPDF}
@@ -191,6 +217,51 @@ export default function ItineraryPage() {
           </button>
         </div>
       </div>
+
+      <Dialog open={editModal.open} onClose={() => setEditModal({ ...editModal, open: false })} className="fixed z-50 inset-0 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen">
+          <Dialog.Panel className="bg-white shadow-xl rounded-lg max-w-md w-full p-6">
+            <Dialog.Title className="text-lg font-bold mb-4">{editModal.activityIndex === -1 ? 'Add Activity' : 'Edit Activity'}</Dialog.Title>
+
+            <input
+              placeholder="Title"
+              value={editForm.title}
+              onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+              className="w-full border mb-2 p-2 rounded"
+            />
+            <textarea
+              placeholder="Description"
+              value={editForm.description}
+              onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+              className="w-full border mb-2 p-2 rounded"
+            />
+            <input
+              placeholder="Category"
+              value={editForm.category}
+              onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+              className="w-full border mb-2 p-2 rounded"
+            />
+            <input
+              type="number"
+              placeholder="Estimated Cost"
+              value={editForm.cost}
+              onChange={e => setEditForm({ ...editForm, cost: e.target.value })}
+              className="w-full border mb-4 p-2 rounded"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditModal({ ...editModal, open: false })}
+                className="text-sm text-gray-600"
+              >Cancel</button>
+              <button
+                onClick={submitEdit}
+                className="bg-blue-600 text-white px-4 py-1 rounded"
+              >Save</button>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </>
   )
 }

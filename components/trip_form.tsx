@@ -4,6 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { addDays } from 'date-fns'
 import { Utensils, TreePine, Landmark, BookText, PartyPopper, ShoppingBag, Sun, Mountain, Paintbrush, Cpu, CalendarHeart } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import { useRouter } from 'next/router'
 
 const baseInterestOptions = [
   { label: 'Food', icon: Utensils },
@@ -22,6 +23,7 @@ const moreInterestOptions = [
 ]
 
 export default function TripForm() {
+  const router = useRouter()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userId, setUserId] = useState<string>('')
   const [singleDestination, setSingleDestination] = useState('')
@@ -35,6 +37,16 @@ export default function TripForm() {
   const [budget, setBudget] = useState<'low' | 'medium' | 'high'>('medium')
   const [interests, setInterests] = useState<string[]>([])
   const [showMoreInterests, setShowMoreInterests] = useState(false)
+
+  useEffect(() => {
+    const user = localStorage.getItem('user')
+    if (user) {
+      const parsed = JSON.parse(user)
+      console.log("🔍 Loaded user", parsed)
+      setIsLoggedIn(true)
+      setUserId(parsed.id)
+    }
+  }, [])
 
   useEffect(() => {
     if (justSelected) {
@@ -93,6 +105,7 @@ export default function TripForm() {
       },
       interests,
       budget,
+      roundTrip,
     }
 
     try {
@@ -102,12 +115,12 @@ export default function TripForm() {
         body: JSON.stringify(tripPayload),
       })
 
-      const { tripData, itinerary } = await res.json()
+      const data = await res.json()
 
-      localStorage.setItem('tripData', JSON.stringify(tripData))
-      localStorage.setItem('savedItinerary', JSON.stringify(itinerary))
+      localStorage.setItem('savedItinerary', JSON.stringify(data.itinerary));
+localStorage.setItem('tripData', JSON.stringify(data));
 
-      window.location.href = '/itinerary'
+      router.push('/itinerary')
     } catch (err) {
       alert('Failed to generate itinerary. Try again later.')
       console.error(err)
@@ -132,24 +145,24 @@ export default function TripForm() {
             placeholder="e.g. Paris"
             className="w-full border px-3 py-2 rounded mb-2"
           />
-{searchResults.length > 0 && (
-  <ul className="bg-white border rounded-md mb-4">
-    {searchResults.map((result, i) => (
-      <li
-        key={i}
-        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-        onClick={() => {
-          setSingleDestination(result.name);
-          setSearchQuery(result.name);
-          setJustSelected(true);
-          setSearchResults([]);
-        }}
-      >
-        {result.name} <span className="text-xs text-gray-400">{result.place_formatted}</span>
-      </li>
-    ))}
-  </ul>
-)}
+          {searchResults.length > 0 && (
+            <ul className="bg-white border rounded-md mb-4">
+              {searchResults.map((result, i) => (
+                <li
+                  key={i}
+                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    setSingleDestination(result.name);
+                    setSearchQuery(result.name);
+                    setJustSelected(true);
+                    setSearchResults([]);
+                  }}
+                >
+                  {result.name} <span className="text-xs text-gray-400">{result.place_formatted}</span>
+                </li>
+              ))}
+            </ul>
+          )}
 
           <label className="block text-sm font-medium mb-2">Travel Dates</label>
           <div className="flex gap-2 mb-4">
