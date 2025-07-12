@@ -13,7 +13,10 @@ export type DayPlan = {
 
 export type TripData = {
   destinations: string
-  dates: string
+  dates: {
+    start: string
+    end: string
+  }
   roundTrip?: string
   budget: 'low' | 'medium' | 'high'
 }
