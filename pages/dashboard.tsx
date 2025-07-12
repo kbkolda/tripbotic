@@ -30,7 +30,7 @@ export default function DashboardPage() {
             >
               <strong>{trip.destinations}</strong>
               <p className="text-sm text-gray-500">
-                {trip.dates} · {trip.budget}
+                {trip.dates.start} - {trip.dates.end} · {trip.budget}
               </p>
             </div>
           ))
