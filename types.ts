@@ -3,6 +3,9 @@ export type Activity = {
   description: string
   category: string
   estimated_cost: number
+  website?: string
+  fsq_id?: string
+  rank?: number
 }
 
 export type DayPlan = {
@@ -19,4 +22,12 @@ export type TripData = {
   }
   roundTrip?: string
   budget: 'low' | 'medium' | 'high'
+  interests: string[]
+  costSummary?: {
+    flights: number
+    accommodations: number
+    activities: number
+    food: number
+    total: number
+  }
 }
