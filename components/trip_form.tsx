@@ -168,22 +168,21 @@ localStorage.setItem('tripData', JSON.stringify(data));
           <div className="flex gap-2 mb-4">
             <DatePicker
               selected={startDate}
-              onChange={(date) => setStartDate(date)}
+              onChange={(date: Date) => setStartDate(date)}
               selectsStart
               startDate={startDate}
               endDate={endDate}
-              dateFormat="yyyy-MM-dd"
-              className="w-full border px-3 py-2 rounded"
+              dateFormat="MMM d, yyyy"
+              className="..."
             />
             <DatePicker
               selected={endDate}
-              onChange={(date) => setEndDate(date)}
+              onChange={(date: Date) => setEndDate(date)}
               selectsEnd
               startDate={startDate}
               endDate={endDate}
-              minDate={startDate}
-              dateFormat="yyyy-MM-dd"
-              className="w-full border px-3 py-2 rounded"
+              dateFormat="MMM d, yyyy"
+              className="..."
             />
           </div>
 
