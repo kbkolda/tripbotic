@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     const orderedInterests = Array.from(interestSet).slice(0, daysHere)
 
-    for (const interest of orderedInterests) {
+    for (const interest of orderedInterests as string[]) {
       const canonicalInterest = interestAliasMap[interest] || interest
       const categoryList = categoryIdsByInterest[canonicalInterest] || [13065]
       const selectedCategory = shuffle([...categoryList])[0]
